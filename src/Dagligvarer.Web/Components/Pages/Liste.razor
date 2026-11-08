@@ -1,0 +1,134 @@
+@page "/liste"
+@inject PriceQueries Q
+
+<PageTitle>Indkøbsliste · Hylden</PageTitle>
+
+<section class="intro">
+    <h1>Indkøbsliste</h1>
+    <p class="muted">Skriv hvad du skal bruge. Hylden finder ud af hvor det er billigst lige nu.</p>
+</section>
+
+<div class="list-layout">
+    <section class="list">
+        <form class="add" @onsubmit="AddItem">
+            <label for="new-item">Tilføj vare</label>
+            <div class="add-row">
+                <input id="new-item" @bind="newItem" placeholder="fx mælk, bananer, kaffe…" name="item" autocomplete="off" />
+                <input type="number" min="1" max="99" @bind="newQty" aria-label="Antal" />
+                <button class="btn" type="submit">Tilføj</button>
+            </div>
+        </form>
+
+        @if (items.Count == 0)
+        {
+            <p class="empty-list">Listen er tom. Tilføj din første vare ovenfor, eller tryk "+ Liste" på et tilbud.</p>
+        }
+        else
+        {
+            <ul class="items">
+                @foreach (var item in items)
+                {
+                    <li class="@(item.Done ? "done" : "")">
+                        <input type="checkbox" checked="@item.Done" @onchange="() => ToggleDone(item)" aria-label="Markér @item.Query som købt" />
+                        <a href="soeg/@Uri.EscapeDataString(item.Query)" title="Se prisudvikling">@item.Query</a>
+                        <span class="qty">
+                            <button type="button" @onclick="() => ChangeQty(item, -1)" aria-label="Færre">−</button>
+                            <span>@item.Quantity</span>
+                            <button type="button" @onclick="() => ChangeQty(item, 1)" aria-label="Flere">+</button>
+                        </span>
+                        <button type="button" class="remove" @onclick="() => Remove(item)" aria-label="Fjern @item.Query">Fjern</button>
+                    </li>
+                }
+            </ul>
+            @if (items.Any(i => i.Done))
+            {
+                <button class="link" @onclick="ClearDone">Ryd købte varer</button>
+            }
+        }
+    </section>
+
+    <section class="receipt-wrap" aria-label="Hvor skal du handle">
+        <div class="max-stores" role="radiogroup" aria-label="Hvor mange butikker vil du handle i?">
+            <span>Antal butikker</span>
+            @foreach (var n in new[] { 1, 2, 3, 99 })
+            {
+                <button class="@(maxStores == n ? "on" : "")" role="radio" aria-checked="@(maxStores == n)" @onclick="() => maxStores = n">@(n == 99 ? "Alle" : n.ToString())</button>
+            }
+        </div>
+
+        @{ var plan = ShoppingPlanner.Plan(items, offers, maxStores); }
+        <article class="receipt">
+            <h2>Din tur</h2>
+            @if (plan.Stops.Count == 0 && plan.NotOnOffer.Count == 0)
+            {
+                <p>Tilføj varer for at se hvor du skal handle.</p>
+            }
+            @foreach (var stop in plan.Stops)
+            {
+                <section class="stop" style="--dealer:@DealerColors.For(stop.DealerName, stores.FirstOrDefault(s => s.DealerName == stop.DealerName)?.BrandColor)">
+                    <h3>@stop.DealerName <small>@StoreLine(stop.DealerName)</small></h3>
+                    @foreach (var line in stop.Lines)
+                    {
+                        <div class="line">
+                            <span>@(line.Item.Quantity > 1 ? $"{line.Item.Quantity} x " : "")@line.Offer!.Heading</span>
+                            <span class="amount">@line.LineTotal!.Value.ToString("0.00")</span>
+                        </div>
+                    }
+                    <div class="line sub"><span>I alt</span><span class="amount">@stop.Total.ToString("0.00")</span></div>
+                </section>
+            }
+            @if (plan.NotOnOffer.Count > 0)
+            {
+                <section class="stop missing">
+                    <h3>Ikke på tilbud</h3>
+                    <p>Køb til normalpris hvor det passer dig:</p>
+                    @foreach (var i in plan.NotOnOffer)
+                    {
+                        <div class="line"><span>@i.Query</span><span class="amount">?</span></div>
+                    }
+                </section>
+            }
+            @if (plan.Stops.Count > 0)
+            {
+                <div class="total"><span>Total på tilbud</span><span class="amount">@plan.Total.ToString("0.00") kr</span></div>
+                @if (plan.Saved > 0)
+                {
+                    <p class="saved">Du sparer @plan.Saved.ToString("0.00") kr i forhold til førpris</p>
+                }
+            }
+        </article>
+    </section>
+</div>
+
+@code {
+    private List<ShoppingListItem> items = [];
+    private List<Offer> offers = [];
+    private List<Store> stores = [];
+    private string newItem = "";
+    private int newQty = 1;
+    private int maxStores = 2;
+
+    protected override async Task OnInitializedAsync()
+    {
+        offers = await Q.CurrentOffersAsync();
+        stores = await Q.StoresAsync();
+        await Reload();
+    }
+
+    private async Task Reload() => items = await Q.ShoppingListAsync();
+
+    private string StoreLine(string dealer) =>
+        stores.FirstOrDefault(s => s.DealerName == dealer) is { } s ? $"{s.Street}, {s.DistanceMeters} m" : "";
+
+    private async Task AddItem()
+    {
+        await Q.AddToListAsync(newItem, Math.Max(1, newQty));
+        newItem = ""; newQty = 1;
+        await Reload();
+    }
+
+    private async Task ToggleDone(ShoppingListItem item) { await Q.UpdateItemAsync(item.Id, i => i.Done = !i.Done); await Reload(); }
+    private async Task ChangeQty(ShoppingListItem item, int d) { await Q.UpdateItemAsync(item.Id, i => i.Quantity = Math.Max(1, i.Quantity + d)); await Reload(); }
+    private async Task Remove(ShoppingListItem item) { await Q.RemoveItemAsync(item.Id); await Reload(); }
+    private async Task ClearDone() { await Q.ClearDoneAsync(); await Reload(); }
+}

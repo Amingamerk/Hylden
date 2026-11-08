@@ -1,0 +1,75 @@
+name: Hent priser og udgiv
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Hver morgen. Tidspunktet er UTC, så det bliver ca. kl. 6-7 dansk tid.
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# Kun én kørsel ad gangen, så to commits af data ikke kolliderer.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Kør tests
+        run: dotnet test -c Release
+
+      # Hent friske tilbud fra Tjek og gem dem som JSON. Springes over ved en almindelig push,
+      # så kodeændringer ikke laver en ny datafil.
+      - name: Hent tilbud
+        if: github.event_name != 'push'
+        run: dotnet run --project src/Dagligvarer.Fetcher -c Release
+
+      - name: Gem data i repoet
+        if: github.event_name != 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/Dagligvarer.Web/wwwroot/data
+          if git diff --cached --quiet; then
+            echo "Ingen ændringer i data."
+          else
+            git commit -m "Priser $(date -u +%F)"
+            git push
+          fi
+
+      - name: Byg appen
+        run: dotnet publish src/Dagligvarer.Web -c Release -o out
+
+      # GitHub Pages serverer siden under /<repo-navn>/, så base skal pege dertil.
+      - name: Tilpas til GitHub Pages
+        run: |
+          sed -i "s#<base href=\"/\" />#<base href=\"/${{ github.event.repository.name }}/\" />#" out/wwwroot/index.html
+          # Direkte links som /liste findes ikke som filer. 404.html giver Blazor siden, så routeren tager over.
+          cp out/wwwroot/index.html out/wwwroot/404.html
+          # Uden denne fil ignorerer Pages mapper der starter med underscore (_framework).
+          touch out/wwwroot/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out/wwwroot
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

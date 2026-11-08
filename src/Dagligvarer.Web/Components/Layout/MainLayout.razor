@@ -1,0 +1,31 @@
+@inherits LayoutComponentBase
+@inject PriceQueries Q
+
+<a class="skip" href="#main">Spring til indhold</a>
+<header class="topbar">
+    <a class="brand" href="">Hylden</a>
+    <nav aria-label="Hovedmenu">
+        <NavLink href="" Match="NavLinkMatch.All">Tilbud</NavLink>
+        <NavLink href="liste">Indkøbsliste</NavLink>
+    </nav>
+    <span class="where">@where</span>
+</header>
+
+<main id="main">
+    @Body
+</main>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Noget gik galt. <a href="." class="reload">Genindlæs</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private string where = "Odense";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var loc = await Q.LocationAsync();
+        if (loc.RadiusMeters > 0) where = $"{loc.Label}, {loc.RadiusMeters / 1000.0:0.#} km";
+    }
+}

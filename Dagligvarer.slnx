@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Dagligvarer.Core/Dagligvarer.Core.csproj" />
+    <Project Path="src/Dagligvarer.Fetcher/Dagligvarer.Fetcher.csproj" />
+    <Project Path="src/Dagligvarer.Web/Dagligvarer.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Dagligvarer.Tests/Dagligvarer.Tests.csproj" />
+  </Folder>
+</Solution>

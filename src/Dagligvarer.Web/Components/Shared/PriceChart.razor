@@ -1,0 +1,97 @@
+@* Simpel SVG-linjegraf: én linje pr. kæde. Ingen JavaScript-bibliotek nødvendigt. *@
+@if (Series.Sum(s => s.Points.Count) == 0)
+{
+    <p class="muted">Ingen prishistorik endnu. Appen gemmer prisen hver dag, så grafen vokser af sig selv.</p>
+}
+else
+{
+    <figure class="chart">
+        <svg viewBox="0 0 @W @H" role="img" aria-label="Prisudvikling for @Title">
+            @foreach (var t in YTicks)
+            {
+                <g>
+                    <line x1="@L" x2="@(W - R)" y1="@Fmt(Y(t))" y2="@Fmt(Y(t))" class="grid" />
+                    <text x="@(L - 8)" y="@Fmt(Y(t) + 4)" class="axis" text-anchor="end">@t.ToString("0.##")</text>
+                </g>
+            }
+            @foreach (var d in XTicks)
+            {
+                <g><text x="@Fmt(X(d))" y="@(H - 8)" class="axis" text-anchor="middle">@d.ToString("d/M")</text></g>
+            }
+            @foreach (var s in Series)
+            {
+                var color = ColorFor(s.DealerName);
+                <polyline points="@Points(s)" fill="none" stroke="@color" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+                @foreach (var p in s.Points)
+                {
+                    <circle cx="@Fmt(X(p.Date))" cy="@Fmt(Y(p.Price))" r="4" fill="@color">
+                        <title>@s.DealerName @p.Date.ToString("d/M"): @p.Price.ToString("0.00") kr</title>
+                    </circle>
+                }
+            }
+        </svg>
+        <figcaption class="legend">
+            @foreach (var s in Series)
+            {
+                var lastPoint = s.Points.Last();
+                <span style="--dealer:@ColorFor(s.DealerName)">@s.DealerName <strong>@lastPoint.Price.ToString("0.00") kr</strong> <small>@lastPoint.Date.ToString("d/M")</small></span>
+            }
+        </figcaption>
+    </figure>
+}
+
+@code {
+    [Parameter, EditorRequired] public List<HistorySeries> Series { get; set; } = [];
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public Func<string, string> ColorFor { get; set; } = d => DealerColors.For(d);
+
+    private const int W = 720, H = 300, L = 56, R = 16, T = 16, B = 32;
+
+    private IEnumerable<HistoryPoint> All => Series.SelectMany(s => s.Points);
+    private DateOnly MinD => All.Min(p => p.Date);
+    private DateOnly MaxD => All.Max(p => p.Date);
+    private decimal MinP => Math.Floor(All.Min(p => p.Price) * 0.9m);
+    private decimal MaxP => Math.Ceiling(All.Max(p => p.Price) * 1.1m);
+
+    private double X(DateOnly d)
+    {
+        var span = MaxD.DayNumber - MinD.DayNumber;
+        return span == 0 ? (L + W - R) / 2.0 : L + (d.DayNumber - MinD.DayNumber) / (double)span * (W - L - R);
+    }
+
+    private double Y(decimal p)
+    {
+        var span = MaxP - MinP;
+        return span == 0 ? H / 2.0 : T + (double)((MaxP - p) / span) * (H - T - B);
+    }
+
+    private IEnumerable<decimal> YTicks
+    {
+        get
+        {
+            var span = MaxP - MinP;
+            if (span == 0) return [MinP];
+            // "Pæne" trin: 1, 2, 5, 10, 20 ... kr.
+            decimal[] nice = [0.5m, 1, 2, 5, 10, 20, 50, 100];
+            var step = nice.FirstOrDefault(n => span / n <= 6, 100);
+            var start = Math.Ceiling(MinP / step) * step;
+            var ticks = new List<decimal>();
+            for (var t = start; t <= MaxP; t += step) ticks.Add(t);
+            return ticks;
+        }
+    }
+
+    private IEnumerable<DateOnly> XTicks
+    {
+        get
+        {
+            var span = MaxD.DayNumber - MinD.DayNumber;
+            if (span == 0) return [MinD];
+            var n = Math.Min(6, span);
+            return Enumerable.Range(0, n + 1).Select(i => MinD.AddDays((int)Math.Round(span * i / (double)n))).Distinct();
+        }
+    }
+
+    private string Points(HistorySeries s) => string.Join(" ", s.Points.Select(p => $"{Fmt(X(p.Date))},{Fmt(Y(p.Price))}"));
+    private static string Fmt(double v) => v.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+}

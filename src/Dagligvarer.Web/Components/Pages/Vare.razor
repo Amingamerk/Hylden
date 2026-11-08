@@ -1,0 +1,63 @@
+@page "/vare/{Key}"
+@page "/soeg/{Query}"
+@inject PriceQueries Q
+
+<PageTitle>@title · Hylden</PageTitle>
+
+<a class="back" href="">Tilbage til tilbud</a>
+<section class="product">
+    <h1>@title</h1>
+    <p class="muted">@(Query is null ? "Prisen på netop denne vare i hver butik, dag for dag." : $"Billigste vare der matcher \"{Query}\" i hver butik, dag for dag.")</p>
+
+    <PriceChart Series="series" Title="@title" ColorFor="@(d => DealerColors.For(d, stores.FirstOrDefault(s => s.DealerName == d)?.BrandColor))" />
+
+    @if (current.Count > 0)
+    {
+        <h2>På tilbud lige nu</h2>
+        <div class="rows">
+            @foreach (var o in current)
+            {
+                <OfferRow Offer="o" Color="@DealerColors.For(o.DealerName)" OnAdd="Add" Added="added" />
+            }
+        </div>
+    }
+    else
+    {
+        <p>Ikke på tilbud i nogen af dine butikker denne uge.</p>
+    }
+
+    <button class="btn" @onclick="AddTitle">@(added ? "Tilføjet til listen" : $"Tilføj \"{Query ?? title}\" til listen")</button>
+</section>
+
+@code {
+    [Parameter] public string? Key { get; set; }
+    [Parameter] public string? Query { get; set; }
+
+    private string title = "";
+    private List<HistorySeries> series = [];
+    private List<Offer> current = [];
+    private List<Store> stores = [];
+    private bool added;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        stores = await Q.StoresAsync();
+        var offers = await Q.CurrentOffersAsync();
+        if (Query is not null)
+        {
+            title = Query;
+            series = await Q.HistoryForQueryAsync(Query);
+            current = offers.Where(o => TextKey.Matches(o.Heading, Query)).OrderBy(o => o.Price).ToList();
+        }
+        else
+        {
+            var key = Uri.UnescapeDataString(Key ?? "");
+            title = await Q.HeadingForAsync(key) ?? key;
+            series = await Q.HistoryForProductAsync(key);
+            current = offers.Where(o => o.ProductKey == key).OrderBy(o => o.Price).ToList();
+        }
+    }
+
+    private async Task Add(Offer o) { await Q.AddToListAsync(o.Heading); added = true; }
+    private async Task AddTitle() { await Q.AddToListAsync(Query ?? title); added = true; }
+}

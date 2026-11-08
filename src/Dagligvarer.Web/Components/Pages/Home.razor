@@ -1,0 +1,127 @@
+@page "/"
+@inject PriceQueries Q
+
+<PageTitle>Tilbud · Hylden</PageTitle>
+
+<h1>Tilbud</h1>
+
+<div class="bar" role="search">
+    <input type="search" class="grow" placeholder="Søg efter en vare…" aria-label="Søg efter en vare" autocomplete="off" name="search" @bind="search" @bind:event="oninput" />
+    <select @bind="category" aria-label="Kategori">
+        <option value="">Alle kategorier (@offers.Count)</option>
+        @foreach (var c in Categorizer.All)
+        {
+            var n = offers.Count(o => Categorizer.For(o.Heading) == c);
+            if (n > 0)
+            {
+                <option value="@c">@c (@n)</option>
+            }
+        }
+    </select>
+    <select @bind="sort" aria-label="Sortér">
+        <option value="discount">Størst rabat</option>
+        <option value="price">Lavest pris</option>
+        <option value="unit">Lavest kilo/literpris</option>
+        <option value="name">Navn</option>
+    </select>
+</div>
+
+<div class="chips" role="group" aria-label="Butikker">
+    @foreach (var dealer in dealerNames)
+    {
+        <label class="chip" style="--dealer:@DealerColors.For(dealer, ColorOf(dealer))">
+            <input type="checkbox" checked="@(!hidden.Contains(dealer))" @onchange="() => Toggle(dealer)" />
+            @dealer <small>@offers.Count(o => o.DealerName == dealer)</small>
+        </label>
+    }
+</div>
+
+<SyncStatus FetchedAt="fetchedAt" Offers="offers.Count" Stores="stores.Count" Error="Q.Error" Loading="loading" OnReload="Reload" />
+
+<section aria-live="polite">
+    @if (loading)
+    {
+        <p class="muted">Henter tilbud…</p>
+    }
+    else if (offers.Count == 0)
+    {
+        <p class="empty">Ingen tilbud endnu. Dataene hentes hver morgen.</p>
+    }
+    else
+    {
+        var shown = Visible.ToList();
+        <p class="count">@shown.Count tilbud@(shown.Count > Limit ? $", viser de første {Limit}. Søg eller vælg kategori for at indsnævre." : "")</p>
+        <div class="rows">
+            @foreach (var offer in shown.Take(Limit))
+            {
+                <OfferRow Offer="offer" Color="@DealerColors.For(offer.DealerName, ColorOf(offer.DealerName))" OnAdd="Add" Added="@(added.Contains(offer.TjekId))" />
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private List<Offer> offers = [];
+    private List<Store> stores = [];
+    private List<string> dealerNames = [];
+    private DateTime? fetchedAt;
+    private bool loading = true;
+    private string search = "";
+    private string sort = "discount";
+    private string category = "";
+    private readonly HashSet<string> added = [];
+    private const int Limit = 300;
+    private readonly HashSet<string> hidden = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        offers = await Q.CurrentOffersAsync();
+        stores = await Q.StoresAsync();
+        fetchedAt = await Q.FetchedAtAsync();
+        dealerNames = stores.Select(s => s.DealerName).Concat(offers.Select(o => o.DealerName)).Distinct().Order().ToList();
+        loading = false;
+    }
+
+    private IEnumerable<Offer> Visible
+    {
+        get
+        {
+            var q = offers.Where(o => !hidden.Contains(o.DealerName));
+            if (category != "") q = q.Where(o => Categorizer.For(o.Heading) == category);
+            if (!string.IsNullOrWhiteSpace(search)) q = q.Where(o => TextKey.Matches(o.Heading + " " + o.Description, search));
+            return sort switch
+            {
+                "price" => q.OrderBy(o => o.Price),
+                "unit" => q.OrderBy(o => o.UnitPrice ?? decimal.MaxValue),
+                "name" => q.OrderBy(o => o.Heading),
+                _ => q.OrderByDescending(o => o.PrePrice is decimal p && p > 0 ? (p - o.Price) / p : 0),
+            };
+        }
+    }
+
+    private string? ColorOf(string dealer) => stores.FirstOrDefault(s => s.DealerName == dealer)?.BrandColor;
+
+    private void Toggle(string dealer)
+    {
+        if (!hidden.Remove(dealer)) hidden.Add(dealer);
+    }
+
+    private async Task Add(Offer offer)
+    {
+        // Tilføjer søgeordet (varenavnet), så listen også finder varen i næste uges aviser.
+        await Q.AddToListAsync(offer.Heading);
+        added.Add(offer.TjekId);
+    }
+
+    private async Task Reload()
+    {
+        loading = true;
+        await Q.ReloadAsync();
+        await Load();
+    }
+}

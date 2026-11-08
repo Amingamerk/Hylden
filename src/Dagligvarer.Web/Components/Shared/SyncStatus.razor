@@ -1,0 +1,29 @@
+<div class="sync">
+    @if (Loading)
+    {
+        <span>Henter tilbud…</span>
+    }
+    else if (FetchedAt is null)
+    {
+        <span class="error">@(Error ?? "Ingen data hentet endnu.")</span>
+    }
+    else
+    {
+        var age = DateTime.UtcNow - FetchedAt.Value;
+        <span class="@(age > TimeSpan.FromHours(36) ? "error" : "")">
+            Priser hentet @FetchedAt.Value.ToLocalTime().ToString("dddd 'd.' d. MMMM 'kl.' HH:mm", Da)@(age > TimeSpan.FromHours(36) ? ". Data er over to dage gamle." : ".")
+            @Offers tilbud fra @Stores butikker.
+        </span>
+    }
+    <button class="link" disabled="@Loading" @onclick="OnReload">Tjek for nyere data</button>
+</div>
+
+@code {
+    [Parameter] public DateTime? FetchedAt { get; set; }
+    [Parameter] public int Offers { get; set; }
+    [Parameter] public int Stores { get; set; }
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public EventCallback OnReload { get; set; }
+    private static readonly System.Globalization.CultureInfo Da = new("da-DK");
+}

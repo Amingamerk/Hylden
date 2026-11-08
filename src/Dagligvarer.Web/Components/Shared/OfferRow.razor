@@ -1,0 +1,19 @@
+<div class="row" style="--dealer:@Color">
+    <a class="name" href="vare/@Uri.EscapeDataString(Offer.ProductKey)">@Offer.Heading</a>
+    <span class="store">@Offer.DealerName</span>
+    <span class="price">@Offer.Price.ToString("0.00")</span>
+    <span class="unit">@(Offer.UnitPrice is decimal u ? $"{u:0.00} kr/{Offer.UnitLabel}" : "")</span>
+    <span class="was">@(Offer.PrePrice is decimal pre && pre > Offer.Price ? $"før {pre:0.00}" : "")</span>
+    <span class="until">til @Offer.ValidTo.ToLocalTime().ToString("d/M")</span>
+    @if (OnAdd.HasDelegate)
+    {
+        <button class="row-add" disabled="@Added" @onclick="() => OnAdd.InvokeAsync(Offer)" aria-label="Tilføj @Offer.Heading til indkøbslisten">@(Added ? "✓" : "+")</button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Offer Offer { get; set; } = default!;
+    [Parameter] public string Color { get; set; } = "#333";
+    [Parameter] public bool Added { get; set; }
+    [Parameter] public EventCallback<Offer> OnAdd { get; set; }
+}

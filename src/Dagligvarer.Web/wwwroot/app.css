@@ -1,0 +1,138 @@
+/* Enkel og hurtig at bruge: systemskrift, hvid baggrund, én accentfarve. */
+:root {
+    --ink: #1c2226;
+    --muted: #66727a;
+    --line: #dde2e5;
+    --bg: #ffffff;
+    --soft: #f4f6f7;
+    --accent: #0b6b4f;
+    --warn: #b3261e;
+    --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; font: 400 1rem/1.45 var(--font); color: var(--ink); background: var(--bg); }
+a { color: inherit; }
+h1 { font-size: 1.6rem; margin: 0 0 1rem; }
+h2 { font-size: 1.15rem; margin: 1.5rem 0 .5rem; }
+.muted, .count { color: var(--muted); }
+.count { margin: .75rem 0 .25rem; font-size: .9rem; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+button, a, input, select, label { touch-action: manipulation; }
+
+.skip { position: absolute; left: -999px; }
+.skip:focus { left: 8px; top: 8px; background: #fff; padding: .5rem 1rem; z-index: 10; }
+
+.topbar { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1.25rem; padding: .6rem 1rem; border-bottom: 1px solid var(--line); }
+.brand { font-weight: 700; font-size: 1.15rem; text-decoration: none; color: var(--accent); }
+.topbar nav { display: flex; gap: .25rem; }
+.topbar nav a { text-decoration: none; padding: .35rem .7rem; border-radius: 6px; }
+.topbar nav a:hover { background: var(--soft); }
+.topbar nav a.active { background: var(--ink); color: #fff; }
+.where { margin-left: auto; color: var(--muted); font-size: .85rem; }
+
+main { max-width: 1100px; margin: 0 auto; padding: 1.25rem 1rem 4rem; }
+
+input, select, button { font: inherit; color: inherit; }
+input[type=search], input[type=text], input:not([type]), input[type=number], select {
+    padding: .5rem .65rem; border: 1px solid #aab4ba; border-radius: 6px; background: #fff; color: var(--ink);
+}
+.btn { background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: .55rem 1rem; font-weight: 600; cursor: pointer; }
+.btn:hover { filter: brightness(1.12); }
+.btn:disabled { opacity: .6; }
+.link { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; }
+.link:disabled { opacity: .5; cursor: progress; }
+
+/* Værktøjslinje */
+.bar { display: flex; flex-wrap: wrap; gap: .5rem; }
+.bar .grow { flex: 1 1 240px; }
+.chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: .75rem 0; }
+.chip { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .6rem; border: 1px solid var(--line); border-left: 5px solid var(--dealer); border-radius: 6px; cursor: pointer; font-size: .9rem; }
+.chip small { color: var(--muted); }
+.chip input { accent-color: var(--accent); }
+.sync { display: flex; flex-wrap: wrap; gap: .25rem 1rem; font-size: .85rem; color: var(--muted); }
+.sync .error { color: var(--warn); }
+.empty { background: var(--soft); padding: 1rem; border-radius: 6px; }
+
+/* Tilbudslinjer: én linje pr. vare */
+.rows { border-top: 1px solid var(--line); }
+.row {
+    display: grid; grid-template-columns: minmax(0, 1fr) 110px 70px 110px 80px 60px 36px;
+    gap: .5rem; align-items: center; padding: .4rem .25rem; border-bottom: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+}
+.row:hover { background: var(--soft); }
+.name { text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.name:hover { text-decoration: underline; }
+.store { font-size: .9rem; border-left: 4px solid var(--dealer); padding-left: .4rem; }
+.price { font-weight: 700; text-align: right; }
+.unit, .until { font-size: .85rem; color: var(--muted); }
+.was { font-size: .85rem; color: var(--warn); text-decoration: line-through; }
+.row-add { width: 32px; height: 32px; border: 1px solid #aab4ba; background: #fff; border-radius: 6px; cursor: pointer; font-weight: 700; }
+.row-add:hover:not(:disabled) { background: var(--accent); color: #fff; border-color: var(--accent); }
+.row-add:disabled { color: var(--accent); border-color: transparent; }
+
+/* Vareside og graf */
+.back { color: var(--muted); display: inline-block; margin-bottom: .5rem; }
+.product { display: grid; gap: .75rem; }
+.product h1 { margin: 0; }
+.product > p { margin: 0; }
+.product .btn { justify-self: start; }
+.chart { margin: 0; border: 1px solid var(--line); border-radius: 6px; padding: .75rem; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart .grid { stroke: var(--line); }
+.chart .axis { font: 12px var(--font); fill: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: .25rem 1rem; font-size: .9rem; margin-top: .5rem; }
+.legend span::before { content: ""; display: inline-block; width: 14px; height: 4px; background: var(--dealer); margin-right: .4rem; vertical-align: middle; }
+.legend small { color: var(--muted); }
+
+/* Indkøbsliste */
+.intro { margin-bottom: 1rem; }
+.intro h1 { margin-bottom: .25rem; }
+.intro p { margin: 0; }
+.list-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); gap: 2rem; align-items: start; }
+.add label { display: block; font-weight: 600; margin-bottom: .25rem; }
+.add-row { display: grid; grid-template-columns: 1fr 64px auto; gap: .5rem; }
+.empty-list { color: var(--muted); }
+.items { list-style: none; padding: 0; margin: 1rem 0 0; border-top: 1px solid var(--line); }
+.items li { display: grid; grid-template-columns: auto 1fr auto auto; gap: .6rem; align-items: center; padding: .4rem .25rem; border-bottom: 1px solid var(--line); }
+.items li a { text-decoration: none; }
+.items li a:hover { text-decoration: underline; }
+.items li.done a { text-decoration: line-through; color: var(--muted); }
+.items input[type=checkbox], .chip input { width: 18px; height: 18px; }
+.qty { display: inline-flex; align-items: center; gap: .35rem; }
+.qty button, .remove { background: #fff; border: 1px solid #aab4ba; border-radius: 6px; min-width: 30px; height: 30px; cursor: pointer; }
+.remove { padding: 0 .6rem; color: var(--muted); }
+
+.max-stores { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin-bottom: .75rem; }
+.max-stores span { font-weight: 600; margin-right: .25rem; }
+.max-stores button { background: #fff; border: 1px solid #aab4ba; border-radius: 6px; padding: .25rem .7rem; cursor: pointer; }
+.max-stores button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+.receipt { border: 1px solid var(--line); border-radius: 6px; padding: 1rem; background: var(--soft); font-variant-numeric: tabular-nums; }
+.receipt h2 { margin: 0 0 .5rem; }
+.stop { padding: .6rem 0; border-top: 1px solid var(--line); }
+.stop h3 { margin: 0 0 .25rem; font-size: 1.05rem; border-left: 5px solid var(--dealer); padding-left: .5rem; }
+.stop h3 small { display: block; font-weight: 400; color: var(--muted); }
+.stop p { margin: .25rem 0; color: var(--muted); font-size: .9rem; }
+.line { display: flex; justify-content: space-between; gap: 1rem; padding: .1rem 0; }
+.line.sub { font-weight: 700; margin-top: .25rem; }
+.amount { white-space: nowrap; }
+.total { display: flex; justify-content: space-between; font-weight: 700; font-size: 1.2rem; padding-top: .75rem; border-top: 2px solid var(--ink); }
+.saved { margin: .25rem 0 0; color: var(--accent); font-weight: 600; }
+
+#blazor-error-ui { background: #fff3b0; bottom: 0; box-shadow: 0 -1px 2px rgba(0,0,0,.2); display: none; left: 0; padding: .6rem 1.25rem; position: fixed; width: 100%; z-index: 1000; }
+#blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: .75rem; top: .5rem; }
+
+@media (max-width: 760px) {
+    .where { margin-left: 0; width: 100%; }
+    .list-layout { grid-template-columns: minmax(0, 1fr); }
+    .row { grid-template-columns: minmax(0, 1fr) auto 36px; grid-template-areas: "name price add" "store unit add" "was until add"; row-gap: 0; padding: .5rem .25rem; }
+    .row .name { grid-area: name; white-space: normal; }
+    .row .price { grid-area: price; }
+    .row .row-add { grid-area: add; align-self: center; }
+    .row .store { grid-area: store; justify-self: start; }
+    .row .unit { grid-area: unit; text-align: right; }
+    .row .was { grid-area: was; }
+    .row .until { grid-area: until; text-align: right; }
+}

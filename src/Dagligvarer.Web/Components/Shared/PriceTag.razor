@@ -1,0 +1,35 @@
+@* Et tilbud vist som en hyldeforkant (prisskilt på hylden). *@
+<article class="tag" style="--dealer:@Color; --i:@Index">
+    <header class="tag-dealer">@Offer.DealerName</header>
+    <a class="tag-name" href="vare/@Uri.EscapeDataString(Offer.ProductKey)">@Offer.Heading</a>
+    @if (!string.IsNullOrWhiteSpace(Offer.QuantityText))
+    {
+        <p class="tag-qty">@Offer.QuantityText</p>
+    }
+    <p class="tag-price" aria-label="Pris @Offer.Price.ToString("0.00") kroner">
+        <span class="kr">@Math.Floor(Offer.Price).ToString("0")</span><span class="ore">@(((int)Math.Round((Offer.Price % 1) * 100)).ToString("00"))</span>
+    </p>
+    <footer class="tag-foot">
+        @if (Offer.UnitPrice is decimal u)
+        {
+            <span>@u.ToString("0.00") kr/@Offer.UnitLabel</span>
+        }
+        @if (Offer.PrePrice is decimal pre && pre > Offer.Price)
+        {
+            <span class="was">Før @pre.ToString("0.00")</span>
+        }
+        <span class="until">Til @Offer.ValidTo.ToLocalTime().ToString("ddd d/M", Da)</span>
+    </footer>
+    @if (OnAdd.HasDelegate)
+    {
+        <button class="tag-add" @onclick="() => OnAdd.InvokeAsync(Offer)" aria-label="Tilføj @Offer.Heading til indkøbslisten">+ Liste</button>
+    }
+</article>
+
+@code {
+    [Parameter, EditorRequired] public Offer Offer { get; set; } = default!;
+    [Parameter] public string Color { get; set; } = "#333";
+    [Parameter] public int Index { get; set; }
+    [Parameter] public EventCallback<Offer> OnAdd { get; set; }
+    private static readonly System.Globalization.CultureInfo Da = new("da-DK");
+}
